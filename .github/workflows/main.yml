@@ -1,0 +1,74 @@
+name: build
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+
+  #check:
+  #  runs-on: ubuntu-latest
+  #  steps:
+  #  - uses: actions/checkout@v2
+  #  - uses: actions/setup-python@v2
+  #    with:
+  #      python-version: '3.x'
+    #- name: Install dependencies
+    #  run: |
+    #    python -m pip install --upgrade pip
+    #    pip install flake8
+    #- name: Lint with flake8
+    #  run: |
+    #    # stop the build if there are Python syntax errors or undefined names
+    #    flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+    #    # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+    #    flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    #- name: Run Python program
+    #  run: python src/lab02.py
+
+  grade:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: gabrielfalcao/pyenv-action@v6
+      with:
+        default: 3.6.3
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: '0'
+    - name: Set up grading environment
+      run: |
+        pyenv global 3.6.3
+        export PATH="/home/runner/.local/bin:$PATH"
+        pip install --upgrade pip
+        pip install pipenv
+        pip install notebook
+        pipenv install --dev --three
+        # pipenv run flake8 src
+        # pipenv run black --check src
+        # pipenv run pylint src
+    - name: Check lab
+      run: |
+        gradle grade
+      if: always()
+      env:
+        PIPENV_VENV_IN_PROJECT: 1
+        PIPENV_IGNORE_VIRTUALENVS: 1
+
+  markdownlint:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Get mdl style file from dotfiles
+        env:
+          # yamllint disable-line rule:line-length
+          STYLE_FILE: https://raw.githubusercontent.com/bewuethr/dotfiles/master/.config/mdl/style.rb
+        run: curl "$STYLE_FILE" > .github/workflows/style.rb
+
+      - name: Run the Markdown linter
+        uses: bewuethr/mdl-action@v1
+        with:
+          style-file: .github/workflows/style.rb
